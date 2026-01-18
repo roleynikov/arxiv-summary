@@ -1,0 +1,2 @@
+# arxiv-summary
+Диплом
