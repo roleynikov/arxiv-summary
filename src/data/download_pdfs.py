@@ -7,7 +7,7 @@ import requests
 logging.basicConfig(level=logging.INFO,format='%(asctime)s-%(levelname)s-%(message)s')
 
 
-def download_pdfs(metadata,output_dir):
+def download_pdfs(metadata=Path('data/raw') / 'metadata.json',output_dir=Path('data/raw') / 'pdfs'):
     output_dir.mkdir(parents=True, exist_ok=True)
     logging.info('Начинаем скачивание PDF')
     with open(metadata, 'r', encoding='utf-8') as f:
@@ -30,6 +30,4 @@ def download_pdfs(metadata,output_dir):
 
 
 if __name__ == '__main__':
-    metadata = Path('data/raw') / 'metadata.json'
-    output_dir = Path('data/raw') / 'pdfs'
-    download_pdfs(metadata, output_dir)
+    download_pdfs()

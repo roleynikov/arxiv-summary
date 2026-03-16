@@ -15,11 +15,8 @@ def process_pdf(pdf_path):
     
     return response.text
 
-def parse_pdf():
-
+def parse_pdf(pdf_dir = Path('data/raw/pdfs'), output_dir = Path('data/raw/tei')):
     logging.info(f'Начинаем парсинг PDF')
-    pdf_dir = Path('data/raw/pdfs')
-    output_dir = Path('data/raw/tei')
     output_dir.mkdir(parents=True, exist_ok=True)
     pdf_files = list(pdf_dir.glob('*.pdf'))
 
