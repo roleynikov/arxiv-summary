@@ -9,7 +9,7 @@ def load_dataset(path: Path):
         for line in f:
             row = json.loads(line)
             records.append({
-                'input_text': 'summarize: ' + row['text'],
+                'input_text': 'summarize the following scientific article:\n' + row['text'],
                 'target_text': row['summary']
             })
     return Dataset.from_list(records)
@@ -21,7 +21,7 @@ def load_inference_dataset(path: Path):
         for line in f:
             row = json.loads(line)
             records.append({
-                'input_text': 'summarize: ' + row['text']
+                'input_text': 'summarize the following scientific article:\n' + row['text']
             })
 
     return Dataset.from_list(records)

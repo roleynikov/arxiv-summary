@@ -5,7 +5,7 @@ QUEUE_NAME = 'arxiv_summary_tasks'
 
 
 def get_channel():
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
     return connection, channel

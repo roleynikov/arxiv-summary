@@ -5,8 +5,8 @@ from pathlib import Path
 import feedparser
 
 CATEGORY = 'cs.CL'
-AMOUNT = 200
-BATCH_SIZE = 10
+AMOUNT = 1000
+BATCH_SIZE = 100
 
 logging.basicConfig(level=logging.INFO,format='%(asctime)s-%(levelname)s-%(message)s')
 

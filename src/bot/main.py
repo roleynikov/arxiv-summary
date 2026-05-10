@@ -6,7 +6,9 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart
 from src.bot.queue import publish_task
 
-TOKEN_TG = os.environ.get('TOKEN_TG')
+import os
+
+TOKEN_TG = os.getenv("TOKEN_TG")
 bot = Bot(token=TOKEN_TG)
 dp = Dispatcher()
 

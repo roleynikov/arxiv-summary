@@ -14,7 +14,7 @@ model.to(device)
 def generate_summary(jsonl_path):
     dataset = load_inference_dataset(jsonl_path)
     text = dataset[0]['input_text']
-    inputs = tokenizer(text,return_tensors='pt',truncation=True,max_length=512).to(device)
-    outputs = model.generate(**inputs,max_length=128)
+    inputs = tokenizer(text,return_tensors='pt',truncation=True,max_length=1024).to(device)
+    outputs = model.generate(**inputs,max_length=1024)
     summary = tokenizer.decode(outputs[0],skip_special_tokens=True)
     return summary

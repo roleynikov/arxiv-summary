@@ -22,7 +22,7 @@ def build_prompt(article):
 Summarize the following scientific article.
 
 Focus on problem, method, and results.
-Write a concise summary (150-200 words).
+Write a concise summary.
 
 Title:
 {article.get('title', '')}
@@ -68,7 +68,7 @@ def main():
             try:
                 summary = groq_summary(build_prompt(article))
             except Exception as e:
-                print(f'Failed to generate summary for article {article['article_id']}: {e}')
+                print(f'Failed to generate summary for article {article["article_id"]}: {e}')
                 continue
             article['summary'] = summary
             out.write(json.dumps(article, ensure_ascii=False) + '\n')

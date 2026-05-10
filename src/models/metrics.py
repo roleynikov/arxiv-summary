@@ -7,7 +7,6 @@ def find_latest_checkpoint(model_dir: Path):
     checkpoints = sorted(model_dir.glob('checkpoint-*'),key=lambda p: int(p.name.split('-')[-1]))
     return checkpoints[-1] if checkpoints else None
 
-
 def extract_metrics(state_path: Path):
     with state_path.open(encoding='utf-8') as f:
         state = json.load(f)
@@ -19,6 +18,7 @@ def extract_metrics(state_path: Path):
                 'rouge1': entry.get('eval_rouge1'),
                 'rouge2': entry.get('eval_rouge2'),
                 'rougeL': entry.get('eval_rougeL'),
+                'bertscore_f1': entry.get('eval_bertscore_f1'),
                 'epoch': entry.get('epoch')
             }
     return best

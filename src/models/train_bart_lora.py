@@ -2,52 +2,63 @@ from pathlib import Path
 import torch
 import numpy as np
 import evaluate
-from transformers import T5ForConditionalGeneration,T5Tokenizer,Seq2SeqTrainer,Seq2SeqTrainingArguments
+from transformers import BartForConditionalGeneration,BartTokenizer,Seq2SeqTrainer,Seq2SeqTrainingArguments
+from peft import LoraConfig, get_peft_model, TaskType
 from src.models.dataset import load_dataset
 
 
 rouge = evaluate.load('rouge')
 bleu = evaluate.load('bleu')
-bertscore = evaluate.load("bertscore")
+bertscore = evaluate.load('bertscore')
 
 def main():
+
     device = 'mps' if torch.backends.mps.is_available() else 'cpu'
     print(f'Тренируем на: {device}')
     dataset = load_dataset(Path('data/processed/articles_with_summary.jsonl'))
     dataset = dataset.train_test_split(test_size=0.1, seed=1805)
-    tokenizer = T5Tokenizer.from_pretrained('t5-small')
-    model = T5ForConditionalGeneration.from_pretrained('t5-small')
+    model_name = 'facebook/bart-large-cnn'
+    tokenizer = BartTokenizer.from_pretrained(model_name)
+    model = BartForConditionalGeneration.from_pretrained(model_name)
+    lora_config = LoraConfig(
+        task_type=TaskType.SEQ_2_SEQ_LM,
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.1,
+        target_modules=['q_proj', 'v_proj'] 
+    )
+
+    model = get_peft_model(model, lora_config)
     model.to(device)
 
     def compute_metrics(eval_pred):
         preds, labels = eval_pred
         if isinstance(preds, tuple):
             preds = preds[0]
-        if preds.ndim == 3:
-            preds = np.argmax(preds, axis=-1)
-
-        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+        preds = np.where(preds != -100, preds, tokenizer.pad_token_id)
         vocab_size = tokenizer.vocab_size
         preds = np.clip(preds, 0, vocab_size - 1)
+        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         labels = np.clip(labels, 0, vocab_size - 1)
-        decoded_preds = tokenizer.batch_decode(preds,skip_special_tokens=True)
-        decoded_labels = tokenizer.batch_decode(labels,skip_special_tokens=True)
+        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
         
         scores = rouge.compute(predictions=decoded_preds,references=decoded_labels)
         scores_bleu = bleu.compute(predictions=decoded_preds,references=decoded_labels)
-        scores_bert = bertscore.compute(predictions=decoded_preds,references=decoded_labels,lang="en")
+        scores_bert = bertscore.compute(predictions=decoded_preds,references=decoded_labels,lang='en')
         return {'rouge1': round(scores['rouge1'], 4),'rouge2': round(scores['rouge2'], 4),'rougeL': round(scores['rougeL'], 4),'bleu':round(scores_bleu['bleu'], 4),'bertscore_f1': round(np.mean(scores_bert['f1']), 4)}
 
+
     def tokenize(batch):
-        inputs = tokenizer(batch['input_text'],truncation=True,padding='max_length',max_length=512)
-        targets = tokenizer(batch['target_text'],truncation=True,padding='max_length',max_length=256)
+        inputs = tokenizer(batch['input_text'],max_length=1024,truncation=True,padding='max_length')
+        targets = tokenizer(batch['target_text'],max_length=256,truncation=True,padding='max_length')
         labels = targets['input_ids']
-        labels = [[token if token != tokenizer.pad_token_id else -100 for token in label] for label in labels]
+        labels = [[(t if t != tokenizer.pad_token_id else -100) for t in label] for label in labels]
         inputs['labels'] = labels
         return inputs
 
     dataset = dataset.map(tokenize,batched=True,remove_columns=dataset['train'].column_names)
-    out_dir = Path('models') / 't5_arxiv_summarizer'
+    out_dir = Path('models') / 'bart_large_cnn_lora'
     training_args = Seq2SeqTrainingArguments(
         output_dir=str(out_dir),
         eval_strategy='epoch',
@@ -56,13 +67,15 @@ def main():
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
         gradient_accumulation_steps=4,
-        learning_rate=3e-4,
-        num_train_epochs=20,
+        learning_rate=2e-4,
+        num_train_epochs=5,
         weight_decay=0.01,
         save_total_limit=2,
         report_to='none',
         predict_with_generate=True,
-        generation_max_length=256
+        generation_max_length=256,
+        generation_num_beams=4,
+        fp16=False
     )
 
     trainer = Seq2SeqTrainer(
@@ -73,12 +86,10 @@ def main():
         tokenizer=tokenizer,
         compute_metrics=compute_metrics
     )
-
     trainer.train()
-
-    trainer.save_model(out_dir)
+    model.save_pretrained(out_dir)
     tokenizer.save_pretrained(out_dir)
-    print(f'Модель сохранена в {out_dir}')
+    print(f'LoRA модель сохранена в {out_dir}')
 
 
 if __name__ == '__main__':
