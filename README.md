@@ -1,8 +1,3 @@
-docker-compose down 
-docker-compose build --no-cache
-docker-compose up -d   
-docker logs worker -f   
-
 
 # Arxiv Summary Bot
 
